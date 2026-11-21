@@ -35,7 +35,7 @@
     font-size: 17px;
     line-height: 1.55;
   }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 18px 80px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 64px 18px 80px; }
   h1 {
     font-family: var(--display);
     font-weight: 800;
@@ -106,13 +106,14 @@
     color: var(--purple);
   }
   .banner.hidden { display: none; }
-
+ 
   .ticket-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
   .ticket-head h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0; }
   .status { font-weight: 600; font-size: 0.9rem; padding: 3px 12px; border-radius: 999px; border: 1px solid currentColor; }
   .status.open { color: var(--green); }
   .status.closed { color: var(--red); }
-  dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 18px; margin: 0 0 12px; }
+  .status.claimed { color: var(--yellow); }
+  dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 18px; margin: 0 0 12px; }
   dl.facts div { min-width: 0; }
   dl.facts dt { color: var(--muted); font-size: 0.85rem; }
   dl.facts dd { margin: 0; overflow-wrap: anywhere; }
@@ -123,7 +124,20 @@
   .c-red { color: var(--red); }
   .c-light-red { color: var(--light-red); }
   .empty { color: var(--muted); }
-
+  #tickets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  #tickets section.card { margin-bottom: 0; }
+  .list-head { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 28px 0 14px; }
+  .list-head h2 { margin: 0; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 7px 20px; font-size: 0.9rem; letter-spacing: 0.04em; }
+  .toggle button[aria-pressed="true"] { background: var(--cyan); color: #06222a; }
+  #tickets .empty { grid-column: 1 / -1; }
+ 
   dialog {
     background: var(--panel);
     color: var(--text);
@@ -133,23 +147,29 @@
     width: min(560px, 94vw);
   }
   dialog::backdrop { background: rgba(3, 8, 18, 0.7); }
+  .hidden { display: none !important; }
+  .corner-btn { position: fixed; top: 14px; right: 14px; z-index: 20; padding: 8px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-size: 0.9rem; }
+  .dlg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .dlg-head h2 { margin: 0; }
+  .x-btn { padding: 2px 11px; font-size: 1.3rem; line-height: 1.2; border-radius: 8px; }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
+<button type="button" class="corner-btn" id="wlBtn">Whitelist</button>
+ 
+<div class="wrap" id="app">
   <h1>Ticket System</h1>
-  <p class="lede">Create help tickets, check timezone and budget fit, change the builder, and close tickets when they are done.</p>
+  <p class="lede">Create help tickets, check timezone and budget fit, let builders claim them, and close tickets when they are done.</p>
   <p class="disclaimer" role="note">THIS IS NOT AN OFFICIAL WEBSITE</p>
-
+ 
   <div class="banner hidden" id="banner" role="status" aria-live="polite"></div>
-
+ 
   <section class="card">
     <h2>Create a ticket</h2>
     <form id="createForm" autocomplete="off">
       <div class="grid">
         <label class="field"><span>Their user</span><input type="text" id="user"></label>
-        <label class="field"><span>Builder user</span><input type="text" id="builderUser" placeholder="Leave blank for Unassigned"></label>
         <label class="field">
           <span>What they need</span>
           <select id="need">
@@ -161,7 +181,6 @@
         <label class="field"><span>Difficulty</span><input type="text" id="difficulty"></label>
         <label class="field"><span>Their timezone</span><input type="text" id="userTz" placeholder="UTC+0, UTC-5, +2"></label>
         <label class="field"><span>User availability</span><input type="text" id="userAvail"></label>
-        <label class="field"><span>Builder timezone</span><input type="text" id="builderTz" placeholder="UTC+0, UTC-5, +2"></label>
         <label class="field"><span>Builder availability</span><input type="text" id="builderAvail"></label>
         <label class="field"><span>Estimated time</span><input type="text" id="estTime"></label>
         <label class="field"><span>Level</span><input type="text" id="level"></label>
@@ -171,11 +190,22 @@
       <div class="error" id="createError" role="alert"></div>
     </form>
   </section>
-
-  <h2 style="margin-top:28px">All tickets</h2>
+ 
+  <p class="empty" id="lockedNote">Tickets are only visible to whitelisted users. Use the Whitelist button (top right) to sign in.</p>
+ 
+  <div id="ticketsArea" class="hidden">
+  <div class="list-head">
+    <h2>All tickets</h2>
+    <div class="toggle" role="group" aria-label="Filter tickets by status">
+      <button type="button" id="tgOpen" data-filter="Open" aria-pressed="true">OPEN</button>
+      <button type="button" id="tgClaimed" data-filter="Claimed" aria-pressed="false">CLAIMED</button>
+      <button type="button" id="tgClosed" data-filter="Closed" aria-pressed="false">CLOSED</button>
+    </div>
+  </div>
   <div id="tickets"></div>
+  </div>
 </div>
-
+ 
 <dialog id="builderDialog">
   <form id="builderForm" autocomplete="off">
     <h2 id="dialogTitle">Change builder</h2>
@@ -193,13 +223,59 @@
     <div class="error" id="dialogError" role="alert"></div>
   </form>
 </dialog>
-
+ 
+<dialog id="claimDialog">
+  <form id="claimForm" autocomplete="off">
+    <h2 id="claimTitle">Claim ticket</h2>
+    <div class="grid">
+      <label class="field"><span>Builder user</span><input type="text" id="cBuilderUser"></label>
+      <label class="field"><span>Builder timezone</span><input type="text" id="cBuilderTz" placeholder="UTC+0, UTC-5, +2"></label>
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary">Claim ticket</button>
+      <button type="button" id="claimCancel">Cancel</button>
+    </div>
+    <div class="error" id="claimError" role="alert"></div>
+  </form>
+</dialog>
+ 
+<dialog id="wlDialog">
+  <div class="dlg-head">
+    <h2>Whitelist</h2>
+    <button type="button" class="x-btn" id="wlClose" aria-label="Close">&times;</button>
+  </div>
+  <form id="wlForm" autocomplete="off">
+    <p style="color:var(--muted);margin:0 0 12px">Enter your username to see tickets.</p>
+    <label class="field"><span>Username</span><input type="text" id="wlUser"></label>
+    <div class="actions"><button type="submit" class="primary">Continue</button></div>
+    <div class="error" id="wlError" role="alert"></div>
+  </form>
+  <div id="wlSigned" class="hidden">
+    <p style="margin:0 0 12px">Signed in as <strong id="wlName"></strong>.</p>
+    <div class="actions">
+      <button type="button" id="wlLogout">Log out</button>
+      <button type="button" id="wlDone">Close</button>
+    </div>
+  </div>
+</dialog>
+ 
 <script>
 (function () {
   "use strict";
-
+ 
   var STORAGE_KEY = "ticketSystem.v1";
-
+ 
+  // ---------- Whitelist ----------
+  // Add usernames to this list (capitalisation does not matter), then commit the file to add people.
+  var WHITELIST = ["Ilyapbo", "MR_YUM"];
+  var AUTH_KEY = "ticketSystem.user";
+ 
+  function isWhitelisted(name) {
+    var n = String(name || "").trim().toLowerCase();
+    if (!n) return false;
+    return WHITELIST.some(function (w) { return w.toLowerCase() === n; });
+  }
+ 
   // ---------- Helpers ----------
   function esc(str) {
     return String(str)
@@ -209,9 +285,9 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
-
+ 
   function $(id) { return document.getElementById(id); }
-
+ 
   // Converts inputs like 450K, 1.5M, 750000, $1,000 into a number. Returns null if invalid.
   function parseBudget(raw) {
     var cleaned = raw.trim().replace(/,/g, "").replace(/\$/g, "").toUpperCase();
@@ -222,7 +298,7 @@
     if (!/^\d+(\.\d+)?$/.test(cleaned)) return null;
     return parseFloat(cleaned) * mult;
   }
-
+ 
   // Parses UTC+0, UTC-5, GMT+2, +2, -4, 0 into a number. Returns null if invalid.
   function parseUtcOffset(raw) {
     var cleaned = raw.trim().toUpperCase().replace("UTC", "").replace("GMT", "").replace(/\s/g, "");
@@ -231,13 +307,13 @@
     if (offset < -14 || offset > 14) return null;
     return offset;
   }
-
+ 
   function formatUtc(offset) {
     var value = Number.isInteger(offset) ? offset : offset;
     var sign = offset >= 0 ? "+" : "";
     return "UTC" + sign + value;
   }
-
+ 
   function tzFeedback(userUtc, builderUtc) {
     var diff = Math.abs(userUtc - builderUtc);
     var note = null;
@@ -249,114 +325,140 @@
       warn: note
     };
   }
-
+ 
   function budgetFeedback(amount) {
     if (amount < 500000) return { cls: "c-red", text: "The user needs to grind more." };
     if (amount < 1000000) return { cls: "c-light-red", text: "The builder can help you, depends on the severity." };
     if (amount < 10000000) return { cls: "c-green", text: "The builder can easily help the user." };
     return { cls: "c-green", text: "The builder can easily help the user (huge budget!)." };
   }
-
+ 
   // ---------- State ----------
   var state = load();
-
+ 
   function load() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var data = JSON.parse(raw);
-        if (data && Array.isArray(data.tickets) && typeof data.nextId === "number") return data;
+        if (data && Array.isArray(data.tickets) && typeof data.nextId === "number") {
+          data.tickets.forEach(function (t) {
+            // Older open tickets that already had a builder count as claimed.
+            if (t.status === "Open") {
+              if (t.builderUser && t.builderUser !== "Unassigned") t.status = "Claimed";
+              else t.builderUtc = null;
+            }
+          });
+          return data;
+        }
       }
     } catch (e) { /* storage unavailable */ }
     return { tickets: [], nextId: 1 };
   }
-
+ 
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
   }
-
+ 
   function showBanner(text) {
     var b = $("banner");
     b.textContent = text;
     b.classList.remove("hidden");
   }
-
+ 
   // ---------- Rendering ----------
+  var filter = "Open";
+ 
+  function updateToggle() {
+    Array.prototype.forEach.call(document.querySelectorAll(".toggle button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-filter") === filter ? "true" : "false");
+    });
+  }
+ 
   function render() {
     var box = $("tickets");
-    if (!state.tickets.length) {
-      box.innerHTML = '<p class="empty">No tickets yet. Create one above.</p>';
+    var shown = state.tickets.filter(function (t) { return t.status === filter; }).reverse();
+    updateToggle();
+    if (!shown.length) {
+      box.innerHTML = '<p class="empty">' + (state.tickets.length ? "No " + filter.toLowerCase() + " tickets." : "No tickets yet. Create one above.") + "</p>";
       return;
     }
     var html = "";
-    state.tickets.forEach(function (t) {
-      var tz = tzFeedback(t.userUtc, t.builderUtc);
+    shown.forEach(function (t) {
+      var hasBuilder = typeof t.builderUtc === "number";
+      var tz = hasBuilder ? tzFeedback(t.userUtc, t.builderUtc) : null;
       var bud = budgetFeedback(t.budgetAmount);
       var match = t.userAvail && t.builderAvail && t.userAvail.toLowerCase() === t.builderAvail.toLowerCase();
-      var open = t.status === "Open";
-
+      var status = t.status;
+      var statusClass = status.toLowerCase();
+ 
       html += '<section class="card"><div class="ticket-head"><h3>#' + t.id + " &middot; " + esc(t.user) + "</h3>" +
-        '<span class="status ' + (open ? "open" : "closed") + '">' + esc(t.status) + "</span></div>";
-
+        '<span class="status ' + statusClass + '">' + esc(t.status) + "</span></div>";
+ 
       html += '<dl class="facts">' +
         fact("Builder", t.builderUser) +
         fact("Need", t.need) +
         fact("Difficulty", t.difficulty) +
         fact("User timezone", formatUtc(t.userUtc) + " (" + (t.userAvail || "Not set") + ")") +
-        fact("Builder timezone", formatUtc(t.builderUtc) + " (" + (t.builderAvail || "Not set") + ")") +
+        fact("Builder timezone", (hasBuilder ? formatUtc(t.builderUtc) : "Not set") + " (" + (t.builderAvail || "Not set") + ")") +
         fact("Estimated time", t.estTime) +
         fact("Level", t.level) +
         fact("Budget", t.budgetRaw) +
         "</dl>";
-
+ 
       html += '<ul class="notes">';
-      html += '<li class="c-cyan">' + esc(tz.line) + "</li>";
-      if (tz.warn) html += '<li class="' + tz.warn.cls + '">' + esc(tz.warn.text) + "</li>";
+      if (tz) {
+        html += '<li class="c-cyan">' + esc(tz.line) + "</li>";
+        if (tz.warn) html += '<li class="' + tz.warn.cls + '">' + esc(tz.warn.text) + "</li>";
+      }
       if (match) html += '<li class="c-green">Both User and Builder can help for ' + esc(t.userAvail) + "</li>";
       html += '<li class="' + bud.cls + '">' + esc(bud.text) + "</li>";
       html += "</ul>";
-
-      html += '<div class="actions" style="margin-top:0">' +
-        '<button type="button" data-act="change" data-id="' + t.id + '">Change builder</button>' +
-        '<button type="button" data-act="close" data-id="' + t.id + '"' + (open ? "" : " disabled") + ">Close ticket</button>" +
+ 
+      var firstBtn = "";
+      if (status === "Open") {
+        firstBtn = '<button type="button" class="primary" data-act="claim" data-id="' + t.id + '">Claim</button>';
+      } else if (status === "Claimed") {
+        firstBtn = '<button type="button" data-act="change" data-id="' + t.id + '">Change builder</button>';
+      }
+      html += '<div class="actions" style="margin-top:0">' + firstBtn +
+        '<button type="button" data-act="close" data-id="' + t.id + '"' + (status === "Closed" ? " disabled" : "") + ">Close ticket</button>" +
         "</div></section>";
     });
     box.innerHTML = html;
   }
-
+ 
   function fact(label, value) {
     return "<div><dt>" + esc(label) + "</dt><dd>" + esc(value === "" || value == null ? "-" : value) + "</dd></div>";
   }
-
+ 
   function findTicket(id) {
     for (var i = 0; i < state.tickets.length; i++) {
       if (state.tickets[i].id === id) return state.tickets[i];
     }
     return null;
   }
-
+ 
   // ---------- Create ticket ----------
   $("createForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var err = $("createError");
     err.textContent = "";
-
+ 
     var userUtc = parseUtcOffset($("userTz").value);
     if (userUtc === null) { err.textContent = "Enter a valid timezone for the user (e.g. UTC+0, UTC-5, +1)."; return; }
-    var builderUtc = parseUtcOffset($("builderTz").value);
-    if (builderUtc === null) { err.textContent = "Enter a valid timezone for the builder (e.g. UTC+0, UTC-5, +1)."; return; }
     var budgetRaw = $("budget").value.trim();
     var budgetAmount = parseBudget(budgetRaw);
     if (budgetAmount === null) { err.textContent = "Enter a valid budget (e.g. 350K, 750K, or 2M)."; return; }
-
+ 
     var ticket = {
       id: state.nextId,
       user: $("user").value.trim(),
-      builderUser: $("builderUser").value.trim() || "Unassigned",
+      builderUser: "Unassigned",
       need: $("need").value,
       difficulty: $("difficulty").value.trim(),
       userUtc: userUtc,
-      builderUtc: builderUtc,
+      builderUtc: null,
       userAvail: $("userAvail").value.trim(),
       builderAvail: $("builderAvail").value.trim(),
       estTime: $("estTime").value.trim(),
@@ -367,23 +469,26 @@
     };
     state.tickets.push(ticket);
     state.nextId += 1;
+    filter = "Open";
     save();
     render();
     showBanner("Ticket #" + ticket.id + " created!");
     $("createForm").reset();
   });
-
+ 
   // ---------- Ticket actions (change builder / close) ----------
   var dialog = $("builderDialog");
   var editingId = null;
-
+  var claimDialog = $("claimDialog");
+  var claimingId = null;
+ 
   $("tickets").addEventListener("click", function (e) {
     var btn = e.target.closest("button[data-act]");
     if (!btn) return;
     var id = parseInt(btn.getAttribute("data-id"), 10);
     var t = findTicket(id);
     if (!t) return;
-
+ 
     if (btn.getAttribute("data-act") === "close") {
       t.status = "Closed";
       save();
@@ -391,7 +496,18 @@
       showBanner("Ticket #" + id + " is now Closed.");
       return;
     }
-
+ 
+    if (btn.getAttribute("data-act") === "claim") {
+      claimingId = id;
+      $("claimTitle").textContent = "Claim ticket #" + id;
+      $("cBuilderUser").value = "";
+      $("cBuilderTz").value = "";
+      $("claimError").textContent = "";
+      if (typeof claimDialog.showModal === "function") claimDialog.showModal();
+      else claimDialog.setAttribute("open", "");
+      return;
+    }
+ 
     editingId = id;
     $("dialogTitle").textContent = "Change builder for ticket #" + id;
     $("dBuilderUser").value = t.builderUser === "Unassigned" ? "" : t.builderUser;
@@ -403,21 +519,21 @@
     if (typeof dialog.showModal === "function") dialog.showModal();
     else dialog.setAttribute("open", "");
   });
-
+ 
   $("dialogCancel").addEventListener("click", function () { dialog.close(); });
-
+ 
   $("builderForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var err = $("dialogError");
     err.textContent = "";
     var t = findTicket(editingId);
     if (!t) { dialog.close(); return; }
-
+ 
     var builderUtc = parseUtcOffset($("dBuilderTz").value);
     if (builderUtc === null) { err.textContent = "Enter a valid builder timezone (e.g. UTC+0, UTC-5, +1)."; return; }
     var userUtc = parseUtcOffset($("dUserTz").value);
     if (userUtc === null) { err.textContent = "Enter a valid user timezone (e.g. UTC+0, UTC-5, +1)."; return; }
-
+ 
     var name = $("dBuilderUser").value.trim();
     t.builderUser = name || "Assigned Builder";
     t.builderUtc = builderUtc;
@@ -429,9 +545,95 @@
     dialog.close();
     showBanner("Ticket #" + t.id + " builder updated to " + t.builderUser + "!");
   });
-
+ 
+  $("claimCancel").addEventListener("click", function () { claimDialog.close(); });
+ 
+  $("claimForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = $("claimError");
+    err.textContent = "";
+    var t = findTicket(claimingId);
+    if (!t) { claimDialog.close(); return; }
+ 
+    var name = $("cBuilderUser").value.trim();
+    if (!name) { err.textContent = "Enter the builder's user."; return; }
+    var builderUtc = parseUtcOffset($("cBuilderTz").value);
+    if (builderUtc === null) { err.textContent = "Enter a valid builder timezone (e.g. UTC+0, UTC-5, +1)."; return; }
+ 
+    t.builderUser = name;
+    t.builderUtc = builderUtc;
+    t.status = "Claimed";
+    save();
+    render();
+    claimDialog.close();
+    showBanner("Ticket #" + t.id + " claimed by " + t.builderUser + "!");
+  });
+ 
+  document.querySelector(".toggle").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-filter]");
+    if (!btn) return;
+    filter = btn.getAttribute("data-filter");
+    render();
+  });
+ 
+  var wlDialog = $("wlDialog");
+ 
+  function openDialog(d) {
+    if (typeof d.showModal === "function") d.showModal();
+    else d.setAttribute("open", "");
+  }
+ 
+  function setSignedIn(name) {
+    $("ticketsArea").classList.remove("hidden");
+    $("lockedNote").classList.add("hidden");
+    $("wlBtn").textContent = name;
+    $("wlName").textContent = name;
+    $("wlForm").classList.add("hidden");
+    $("wlSigned").classList.remove("hidden");
+  }
+ 
+  function setSignedOut() {
+    $("ticketsArea").classList.add("hidden");
+    $("lockedNote").classList.remove("hidden");
+    $("wlBtn").textContent = "Whitelist";
+    $("wlUser").value = "";
+    $("wlError").textContent = "";
+    $("wlForm").classList.remove("hidden");
+    $("wlSigned").classList.add("hidden");
+  }
+ 
+  $("wlBtn").addEventListener("click", function () {
+    $("wlError").textContent = "";
+    openDialog(wlDialog);
+  });
+  $("wlClose").addEventListener("click", function () { wlDialog.close(); });
+  $("wlDone").addEventListener("click", function () { wlDialog.close(); });
+ 
+  $("wlForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("wlUser").value.trim();
+    if (!isWhitelisted(name)) {
+      $("wlError").textContent = "That username is not on the whitelist.";
+      return;
+    }
+    try { localStorage.setItem(AUTH_KEY, name); } catch (err) { /* ignore */ }
+    setSignedIn(name);
+    wlDialog.close();
+  });
+ 
+  $("wlLogout").addEventListener("click", function () {
+    try { localStorage.removeItem(AUTH_KEY); } catch (err) { /* ignore */ }
+    setSignedOut();
+    wlDialog.close();
+  });
+ 
+  var savedUser = null;
+  try { savedUser = localStorage.getItem(AUTH_KEY); } catch (err) { /* ignore */ }
+  if (savedUser && isWhitelisted(savedUser)) setSignedIn(savedUser);
+ 
   render();
 })();
 </script>
 </body>
 </html>
+ 
