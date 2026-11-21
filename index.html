@@ -69,7 +69,8 @@
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field > span { font-size: 0.92rem; color: var(--muted); }
   .field small { color: var(--muted); font-size: 0.8rem; }
-  input[type=text], select {
+  textarea { resize: vertical; min-height: 84px; }
+  input[type=text], select, textarea {
     background: var(--panel-2);
     color: var(--text);
     border: 1px solid var(--line);
@@ -78,7 +79,7 @@
     font: inherit;
     width: 100%;
   }
-  input:focus-visible, select:focus-visible, button:focus-visible {
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
     outline: 2px solid var(--cyan);
     outline-offset: 2px;
   }
@@ -169,7 +170,7 @@
     <h2>Create a ticket</h2>
     <form id="createForm" autocomplete="off">
       <div class="grid">
-        <label class="field"><span>Their user</span><input type="text" id="user"></label>
+        <label class="field"><span>Your user</span><input type="text" id="user"></label>
         <label class="field">
           <span>What they need</span>
           <select id="need">
@@ -179,12 +180,12 @@
           </select>
         </label>
         <label class="field"><span>Difficulty</span><input type="text" id="difficulty"></label>
-        <label class="field"><span>Their timezone</span><input type="text" id="userTz" placeholder="UTC+0, UTC-5, +2"></label>
-        <label class="field"><span>User availability</span><input type="text" id="userAvail"></label>
-        <label class="field"><span>Builder availability</span><input type="text" id="builderAvail"></label>
+        <label class="field"><span>Your timezone</span><input type="text" id="userTz" placeholder="UTC+0, UTC-5, +2"></label>
+        <label class="field"><span>Your availability</span><input type="text" id="userAvail"></label>
         <label class="field"><span>Estimated time</span><input type="text" id="estTime"></label>
         <label class="field"><span>Level</span><input type="text" id="level"></label>
         <label class="field"><span>Budget</span><input type="text" id="budget" placeholder="350K, 750K, 2M"></label>
+        <label class="field" style="grid-column: 1 / -1"><span>Describe what you want to be built</span><textarea id="desc" rows="3"></textarea></label>
       </div>
       <div class="actions"><button type="submit" class="primary">Create ticket</button></div>
       <div class="error" id="createError" role="alert"></div>
@@ -214,7 +215,7 @@
       <label class="field"><span>Builder timezone</span><input type="text" id="dBuilderTz" placeholder="UTC+0, UTC-5, +2"></label>
       <label class="field"><span>Builder availability</span><input type="text" id="dBuilderAvail"></label>
       <label class="field"><span>User's timezone</span><input type="text" id="dUserTz" placeholder="UTC+0, UTC-5, +2"></label>
-      <label class="field"><span>User availability</span><input type="text" id="dUserAvail"></label>
+      <label class="field"><span>Your availability</span><input type="text" id="dUserAvail"></label>
     </div>
     <div class="actions">
       <button type="submit" class="primary">Save builder</button>
@@ -230,6 +231,7 @@
     <div class="grid">
       <label class="field"><span>Builder user</span><input type="text" id="cBuilderUser"></label>
       <label class="field"><span>Builder timezone</span><input type="text" id="cBuilderTz" placeholder="UTC+0, UTC-5, +2"></label>
+      <label class="field"><span>Builder availability</span><input type="text" id="cBuilderAvail"></label>
     </div>
     <div class="actions">
       <button type="submit" class="primary">Claim ticket</button>
@@ -267,7 +269,7 @@
  
   // ---------- Whitelist ----------
   // Add usernames to this list (capitalisation does not matter), then commit the file to add people.
-  var WHITELIST = ["Ilyapbo", "MR-YUM"];
+  var WHITELIST = ["YourUsernameHere", "FriendUsername"];
   var AUTH_KEY = "ticketSystem.user";
  
   function isWhitelisted(name) {
@@ -404,6 +406,7 @@
         fact("Estimated time", t.estTime) +
         fact("Level", t.level) +
         fact("Budget", t.budgetRaw) +
+        (t.description ? fact("Description", t.description, true) : "") +
         "</dl>";
  
       html += '<ul class="notes">';
@@ -428,8 +431,10 @@
     box.innerHTML = html;
   }
  
-  function fact(label, value) {
-    return "<div><dt>" + esc(label) + "</dt><dd>" + esc(value === "" || value == null ? "-" : value) + "</dd></div>";
+  function fact(label, value, wide) {
+    var style = wide ? ' style="grid-column:1/-1"' : "";
+    var ddStyle = wide ? ' style="white-space:pre-wrap"' : "";
+    return "<div" + style + "><dt>" + esc(label) + "</dt><dd" + ddStyle + ">" + esc(value === "" || value == null ? "-" : value) + "</dd></div>";
   }
  
   function findTicket(id) {
@@ -460,7 +465,8 @@
       userUtc: userUtc,
       builderUtc: null,
       userAvail: $("userAvail").value.trim(),
-      builderAvail: $("builderAvail").value.trim(),
+      builderAvail: "",
+      description: $("desc").value.trim(),
       estTime: $("estTime").value.trim(),
       level: $("level").value.trim(),
       budgetRaw: budgetRaw,
@@ -502,6 +508,7 @@
       $("claimTitle").textContent = "Claim ticket #" + id;
       $("cBuilderUser").value = "";
       $("cBuilderTz").value = "";
+      $("cBuilderAvail").value = "";
       $("claimError").textContent = "";
       if (typeof claimDialog.showModal === "function") claimDialog.showModal();
       else claimDialog.setAttribute("open", "");
@@ -562,6 +569,7 @@
  
     t.builderUser = name;
     t.builderUtc = builderUtc;
+    t.builderAvail = $("cBuilderAvail").value.trim();
     t.status = "Claimed";
     save();
     render();
