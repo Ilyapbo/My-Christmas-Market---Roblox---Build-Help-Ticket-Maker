@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket System</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AB%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;800&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121c31;
+    --panel-2: #0d1627;
+    --line: #26385c;
+    --text: #e8eefb;
+    --muted: #93a4c6;
+    --cyan: #5ad1e6;
+    --green: #5fe3a1;
+    --red: #ff6b6b;
+    --light-red: #ff9f87;
+    --purple: #c6a0ff;
+    --yellow: #ffd666;
+    --radius: 10px;
+    --display: "Sora", "Trebuchet MS", system-ui, sans-serif;
+    --body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 18px 80px; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 1.3rem; margin: 0 0 12px; }
+  .lede { color: var(--muted); max-width: 60ch; margin: 0 0 16px; }
+  .disclaimer {
+    display: inline-block;
+    margin: 0 0 26px;
+    padding: 8px 14px;
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+  }
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field > span { font-size: 0.92rem; color: var(--muted); }
+  .field small { color: var(--muted); font-size: 0.8rem; }
+  input[type=text], select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font: inherit;
+    width: 100%;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+  button {
+    font: inherit; font-weight: 600;
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+  }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.primary { background: var(--cyan); color: #06222a; border-color: var(--cyan); padding: 11px 22px; }
+  button.primary:hover { filter: brightness(1.08); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .error { color: var(--red); min-height: 1.3em; margin-top: 10px; }
+  .banner {
+    border-left: 3px solid var(--purple);
+    background: var(--panel-2);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 18px;
+    color: var(--purple);
+  }
+  .banner.hidden { display: none; }
+
+  .ticket-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .ticket-head h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0; }
+  .status { font-weight: 600; font-size: 0.9rem; padding: 3px 12px; border-radius: 999px; border: 1px solid currentColor; }
+  .status.open { color: var(--green); }
+  .status.closed { color: var(--red); }
+  dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 18px; margin: 0 0 12px; }
+  dl.facts div { min-width: 0; }
+  dl.facts dt { color: var(--muted); font-size: 0.85rem; }
+  dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+  ul.notes { list-style: none; margin: 0 0 12px; padding: 0; }
+  ul.notes li { padding: 3px 0; }
+  .c-cyan { color: var(--cyan); }
+  .c-green { color: var(--green); }
+  .c-red { color: var(--red); }
+  .c-light-red { color: var(--light-red); }
+  .empty { color: var(--muted); }
+
+  dialog {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    width: min(560px, 94vw);
+  }
+  dialog::backdrop { background: rgba(3, 8, 18, 0.7); }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ticket System</h1>
+  <p class="lede">Create help tickets, check timezone and budget fit, change the builder, and close tickets when they are done.</p>
+  <p class="disclaimer" role="note">THIS IS NOT AN OFFICIAL WEBSITE</p>
+
+  <div class="banner hidden" id="banner" role="status" aria-live="polite"></div>
+
+  <section class="card">
+    <h2>Create a ticket</h2>
+    <form id="createForm" autocomplete="off">
+      <div class="grid">
+        <label class="field"><span>Their user</span><input type="text" id="user"></label>
+        <label class="field"><span>Builder user</span><input type="text" id="builderUser" placeholder="Leave blank for Unassigned"></label>
+        <label class="field">
+          <span>What they need</span>
+          <select id="need">
+            <option>Base Building</option>
+            <option>Lighting</option>
+            <option>Overall help</option>
+          </select>
+        </label>
+        <label class="field"><span>Difficulty</span><input type="text" id="difficulty"></label>
+        <label class="field"><span>Their timezone</span><input type="text" id="userTz" placeholder="UTC+0, UTC-5, +2"></label>
+        <label class="field"><span>User availability</span><input type="text" id="userAvail"></label>
+        <label class="field"><span>Builder timezone</span><input type="text" id="builderTz" placeholder="UTC+0, UTC-5, +2"></label>
+        <label class="field"><span>Builder availability</span><input type="text" id="builderAvail"></label>
+        <label class="field"><span>Estimated time</span><input type="text" id="estTime"></label>
+        <label class="field"><span>Level</span><input type="text" id="level"></label>
+        <label class="field"><span>Budget</span><input type="text" id="budget" placeholder="350K, 750K, 2M"></label>
+      </div>
+      <div class="actions"><button type="submit" class="primary">Create ticket</button></div>
+      <div class="error" id="createError" role="alert"></div>
+    </form>
+  </section>
+
+  <h2 style="margin-top:28px">All tickets</h2>
+  <div id="tickets"></div>
+</div>
+
+<dialog id="builderDialog">
+  <form id="builderForm" autocomplete="off">
+    <h2 id="dialogTitle">Change builder</h2>
+    <div class="grid">
+      <label class="field"><span>Builder user</span><input type="text" id="dBuilderUser"></label>
+      <label class="field"><span>Builder timezone</span><input type="text" id="dBuilderTz" placeholder="UTC+0, UTC-5, +2"></label>
+      <label class="field"><span>Builder availability</span><input type="text" id="dBuilderAvail"></label>
+      <label class="field"><span>User's timezone</span><input type="text" id="dUserTz" placeholder="UTC+0, UTC-5, +2"></label>
+      <label class="field"><span>User availability</span><input type="text" id="dUserAvail"></label>
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary">Save builder</button>
+      <button type="button" id="dialogCancel">Cancel</button>
+    </div>
+    <div class="error" id="dialogError" role="alert"></div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "ticketSystem.v1";
+
+  // ---------- Helpers ----------
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  // Converts inputs like 450K, 1.5M, 750000, $1,000 into a number. Returns null if invalid.
+  function parseBudget(raw) {
+    var cleaned = raw.trim().replace(/,/g, "").replace(/\$/g, "").toUpperCase();
+    var mult = 1;
+    if (cleaned.slice(-1) === "K") { mult = 1000; cleaned = cleaned.slice(0, -1); }
+    else if (cleaned.slice(-1) === "M") { mult = 1000000; cleaned = cleaned.slice(0, -1); }
+    cleaned = cleaned.trim();
+    if (!/^\d+(\.\d+)?$/.test(cleaned)) return null;
+    return parseFloat(cleaned) * mult;
+  }
+
+  // Parses UTC+0, UTC-5, GMT+2, +2, -4, 0 into a number. Returns null if invalid.
+  function parseUtcOffset(raw) {
+    var cleaned = raw.trim().toUpperCase().replace("UTC", "").replace("GMT", "").replace(/\s/g, "");
+    if (!/^[+-]?\d+(\.\d+)?$/.test(cleaned)) return null;
+    var offset = parseFloat(cleaned);
+    if (offset < -14 || offset > 14) return null;
+    return offset;
+  }
+
+  function formatUtc(offset) {
+    var value = Number.isInteger(offset) ? offset : offset;
+    var sign = offset >= 0 ? "+" : "";
+    return "UTC" + sign + value;
+  }
+
+  function tzFeedback(userUtc, builderUtc) {
+    var diff = Math.abs(userUtc - builderUtc);
+    var note = null;
+    if (diff >= 8) note = { cls: "c-red", text: "There will be a different builder needed." };
+    else if (diff >= 5) note = { cls: "c-light-red", text: "There will be time zone issues." };
+    return {
+      diff: diff,
+      line: "Timezone difference: " + diff + "h (" + formatUtc(userUtc) + " vs " + formatUtc(builderUtc) + ")",
+      warn: note
+    };
+  }
+
+  function budgetFeedback(amount) {
+    if (amount < 500000) return { cls: "c-red", text: "The user needs to grind more." };
+    if (amount < 1000000) return { cls: "c-light-red", text: "The builder can help you, depends on the severity." };
+    if (amount < 10000000) return { cls: "c-green", text: "The builder can easily help the user." };
+    return { cls: "c-green", text: "The builder can easily help the user (huge budget!)." };
+  }
+
+  // ---------- State ----------
+  var state = load();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && Array.isArray(data.tickets) && typeof data.nextId === "number") return data;
+      }
+    } catch (e) { /* storage unavailable */ }
+    return { tickets: [], nextId: 1 };
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  function showBanner(text) {
+    var b = $("banner");
+    b.textContent = text;
+    b.classList.remove("hidden");
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    var box = $("tickets");
+    if (!state.tickets.length) {
+      box.innerHTML = '<p class="empty">No tickets yet. Create one above.</p>';
+      return;
+    }
+    var html = "";
+    state.tickets.forEach(function (t) {
+      var tz = tzFeedback(t.userUtc, t.builderUtc);
+      var bud = budgetFeedback(t.budgetAmount);
+      var match = t.userAvail && t.builderAvail && t.userAvail.toLowerCase() === t.builderAvail.toLowerCase();
+      var open = t.status === "Open";
+
+      html += '<section class="card"><div class="ticket-head"><h3>#' + t.id + " &middot; " + esc(t.user) + "</h3>" +
+        '<span class="status ' + (open ? "open" : "closed") + '">' + esc(t.status) + "</span></div>";
+
+      html += '<dl class="facts">' +
+        fact("Builder", t.builderUser) +
+        fact("Need", t.need) +
+        fact("Difficulty", t.difficulty) +
+        fact("User timezone", formatUtc(t.userUtc) + " (" + (t.userAvail || "Not set") + ")") +
+        fact("Builder timezone", formatUtc(t.builderUtc) + " (" + (t.builderAvail || "Not set") + ")") +
+        fact("Estimated time", t.estTime) +
+        fact("Level", t.level) +
+        fact("Budget", t.budgetRaw) +
+        "</dl>";
+
+      html += '<ul class="notes">';
+      html += '<li class="c-cyan">' + esc(tz.line) + "</li>";
+      if (tz.warn) html += '<li class="' + tz.warn.cls + '">' + esc(tz.warn.text) + "</li>";
+      if (match) html += '<li class="c-green">Both User and Builder can help for ' + esc(t.userAvail) + "</li>";
+      html += '<li class="' + bud.cls + '">' + esc(bud.text) + "</li>";
+      html += "</ul>";
+
+      html += '<div class="actions" style="margin-top:0">' +
+        '<button type="button" data-act="change" data-id="' + t.id + '">Change builder</button>' +
+        '<button type="button" data-act="close" data-id="' + t.id + '"' + (open ? "" : " disabled") + ">Close ticket</button>" +
+        "</div></section>";
+    });
+    box.innerHTML = html;
+  }
+
+  function fact(label, value) {
+    return "<div><dt>" + esc(label) + "</dt><dd>" + esc(value === "" || value == null ? "-" : value) + "</dd></div>";
+  }
+
+  function findTicket(id) {
+    for (var i = 0; i < state.tickets.length; i++) {
+      if (state.tickets[i].id === id) return state.tickets[i];
+    }
+    return null;
+  }
+
+  // ---------- Create ticket ----------
+  $("createForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = $("createError");
+    err.textContent = "";
+
+    var userUtc = parseUtcOffset($("userTz").value);
+    if (userUtc === null) { err.textContent = "Enter a valid timezone for the user (e.g. UTC+0, UTC-5, +1)."; return; }
+    var builderUtc = parseUtcOffset($("builderTz").value);
+    if (builderUtc === null) { err.textContent = "Enter a valid timezone for the builder (e.g. UTC+0, UTC-5, +1)."; return; }
+    var budgetRaw = $("budget").value.trim();
+    var budgetAmount = parseBudget(budgetRaw);
+    if (budgetAmount === null) { err.textContent = "Enter a valid budget (e.g. 350K, 750K, or 2M)."; return; }
+
+    var ticket = {
+      id: state.nextId,
+      user: $("user").value.trim(),
+      builderUser: $("builderUser").value.trim() || "Unassigned",
+      need: $("need").value,
+      difficulty: $("difficulty").value.trim(),
+      userUtc: userUtc,
+      builderUtc: builderUtc,
+      userAvail: $("userAvail").value.trim(),
+      builderAvail: $("builderAvail").value.trim(),
+      estTime: $("estTime").value.trim(),
+      level: $("level").value.trim(),
+      budgetRaw: budgetRaw,
+      budgetAmount: budgetAmount,
+      status: "Open"
+    };
+    state.tickets.push(ticket);
+    state.nextId += 1;
+    save();
+    render();
+    showBanner("Ticket #" + ticket.id + " created!");
+    $("createForm").reset();
+  });
+
+  // ---------- Ticket actions (change builder / close) ----------
+  var dialog = $("builderDialog");
+  var editingId = null;
+
+  $("tickets").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    var id = parseInt(btn.getAttribute("data-id"), 10);
+    var t = findTicket(id);
+    if (!t) return;
+
+    if (btn.getAttribute("data-act") === "close") {
+      t.status = "Closed";
+      save();
+      render();
+      showBanner("Ticket #" + id + " is now Closed.");
+      return;
+    }
+
+    editingId = id;
+    $("dialogTitle").textContent = "Change builder for ticket #" + id;
+    $("dBuilderUser").value = t.builderUser === "Unassigned" ? "" : t.builderUser;
+    $("dBuilderTz").value = formatUtc(t.builderUtc);
+    $("dBuilderAvail").value = t.builderAvail;
+    $("dUserTz").value = formatUtc(t.userUtc);
+    $("dUserAvail").value = t.userAvail;
+    $("dialogError").textContent = "";
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  });
+
+  $("dialogCancel").addEventListener("click", function () { dialog.close(); });
+
+  $("builderForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = $("dialogError");
+    err.textContent = "";
+    var t = findTicket(editingId);
+    if (!t) { dialog.close(); return; }
+
+    var builderUtc = parseUtcOffset($("dBuilderTz").value);
+    if (builderUtc === null) { err.textContent = "Enter a valid builder timezone (e.g. UTC+0, UTC-5, +1)."; return; }
+    var userUtc = parseUtcOffset($("dUserTz").value);
+    if (userUtc === null) { err.textContent = "Enter a valid user timezone (e.g. UTC+0, UTC-5, +1)."; return; }
+
+    var name = $("dBuilderUser").value.trim();
+    t.builderUser = name || "Assigned Builder";
+    t.builderUtc = builderUtc;
+    t.builderAvail = $("dBuilderAvail").value.trim();
+    t.userUtc = userUtc;
+    t.userAvail = $("dUserAvail").value.trim();
+    save();
+    render();
+    dialog.close();
+    showBanner("Ticket #" + t.id + " builder updated to " + t.builderUser + "!");
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
